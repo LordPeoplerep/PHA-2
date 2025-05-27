@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PHA-1 Hash Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      font-size: 16px;
+      padding: 10px;
+      font-family: monospace;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+    }
+    pre#output {
+      width: 100%;
+      font-family: monospace;
+      font-size: 16px;
+      background: #f8f8f8;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 12px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 14px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PHA-1 Hash Generator</h1>
+
+  <label for="input">Input Text:</label><br/>
+  <textarea id="input" placeholder="Enter text here...">Long Live Peoplerep</textarea>
+
+  <label for="output">PHA-1 Hash Output:</label>
+  <pre id="output"></pre>
+
+  <button onclick="copyToClipboard()">Copy to Clipboard</button>
+
+  <script>
+    async function generatePHA1Hash(text) {
+      // Use changing nonce to ensure different output every time
+      const nonce = Date.now().toString();
+      // First SHA-512
+      const data1 = new TextEncoder().encode(text + nonce);
+      const hashBuffer1 = await crypto.subtle.digest("SHA-512", data1);
+      const hex1 = Array.from(new Uint8Array(hashBuffer1)).map(b => b.toString(16).padStart(2, '0')).join('');
+      // Second SHA-512 on (hex1 + nonce)
+      const data2 = new TextEncoder().encode(hex1 + nonce);
+      const hashBuffer2 = await crypto.subtle.digest("SHA-512", data2);
+      const hex2 = Array.from(new Uint8Array(hashBuffer2)).map(b => b.toString(16).padStart(2, '0')).join('');
+      // Concatenate for 1024-bit output (256 hex chars)
+      return hex1 + hex2;
+    }
+
+    async function updateOutput() {
+      const inputText = document.getElementById('input').value;
+      const hash = await generatePHA1Hash(inputText);
+      // Split into lines of 64 chars
+      document.getElementById('output').textContent = hash.match(/.{1,64}/g).join("\n");
+    }
+
+    function copyToClipboard() {
+      const outputText = document.getElementById('output').textContent;
+      navigator.clipboard.writeText(outputText);
+      alert("Copied to clipboard!");
+    }
+
+    document.getElementById('input').addEventListener('input', updateOutput);
+    window.onload = updateOutput;
+  </script>
+</body>
+</html>
